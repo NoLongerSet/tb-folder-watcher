@@ -1,0 +1,111 @@
+Module EntryPoint
+
+    Private Const APP_NAME As String = "FolderWatcher"
+    Private Const POLL_TIMEOUT_MS As Long = 300000  ' 5 minutes
+
+    Public Sub Main()
+        Dim args As New ArgumentParser
+        args.Parse Command$()
+
+        If Not args.IsValid Then
+            MsgBox "Error: " & args.ErrorMessage & vbCrLf & vbCrLf & _
+                   "Usage:" & vbCrLf & _
+                   "  FolderWatcher.exe --dir <path> --db <accdb-path> --function <name> --pid <id>", _
+                   vbExclamation, APP_NAME
+            Exit Sub
+        End If
+
+        ' Open a handle to the Access process for monitoring.
+        ' When this handle becomes signaled, Access has exited.
+        Dim hProcess As LongPtr
+        hProcess = OpenProcessHandle(args.ProcessId)
+
+        ' If we can't open the process, it may have already exited
+        If hProcess = 0 Then
+            MsgBox "Cannot monitor process " & args.ProcessId & ". It may have already exited.", _
+                   vbExclamation, APP_NAME
+            Exit Sub
+        End If
+
+        ' Verify the process is still alive before starting
+        If Not IsProcessAlive(hProcess) Then
+            CloseProcessHandle hProcess
+            MsgBox "Process " & args.ProcessId & " is not running.", _
+                   vbExclamation, APP_NAME
+            Exit Sub
+        End If
+
+        ' Open the directory for change notifications
+        If Not OpenWatch(args.WatchDir) Then
+            CloseProcessHandle hProcess
+            MsgBox "Cannot watch directory: " & args.WatchDir & vbCrLf & _
+                   "Please verify the path exists and is accessible.", _
+                   vbExclamation, APP_NAME
+            Exit Sub
+        End If
+
+        ' Main loop: watch for file changes until Access exits
+        RunWatchLoop args, hProcess
+
+        ' Cleanup
+        CloseWatch
+        CloseProcessHandle hProcess
+    End Sub
+
+    Private Sub RunWatchLoop(ByRef args As ArgumentParser, ByVal hProcess As LongPtr)
+        Do
+            ' Arm the async ReadDirectoryChangesW
+            If Not ArmWatch() Then
+                ' ReadDirectoryChangesW failed — directory may have been deleted
+                Exit Do
+            End If
+
+            ' Wait for: directory change (0), process exit (1), or timeout (2)
+            Dim waitResult As Long
+            waitResult = WaitOnHandles(hProcess, POLL_TIMEOUT_MS)
+
+            Select Case waitResult
+                Case 0  ' Directory change detected
+                    ProcessFileNotifications args
+
+                Case 1  ' Access process exited
+                    Exit Do
+
+                Case 2  ' Timeout — belt-and-suspenders PID check
+                    If Not IsProcessAlive(hProcess) Then
+                        Exit Do
+                    End If
+
+                Case Else  ' Error
+                    Exit Do
+            End Select
+        Loop
+    End Sub
+
+    Private Sub ProcessFileNotifications(ByRef args As ArgumentParser)
+        Dim addedFiles() As String
+        addedFiles = GetAddedFiles()
+
+        ' Check if the array has any elements (UBound errors on uninitialized array)
+        Dim fileCount As Long
+        On Error Resume Next
+        fileCount = UBound(addedFiles) - LBound(addedFiles) + 1
+        If Err.Number <> 0 Then fileCount = 0
+        On Error GoTo 0
+
+        If fileCount = 0 Then Exit Sub
+
+        Dim i As Long
+        For i = LBound(addedFiles) To UBound(addedFiles)
+            ' Build full path: watchDir\fileName
+            Dim fullPath As String
+            fullPath = args.WatchDir
+            If Right$(fullPath, 1) <> "\" Then fullPath = fullPath & "\"
+            fullPath = fullPath & addedFiles(i)
+
+            ' Call back into Access (on-demand COM connection, released immediately)
+            InvokeAccessCallback args.DatabasePath, args.FunctionName, fullPath
+        Next i
+    End Sub
+
+End Module

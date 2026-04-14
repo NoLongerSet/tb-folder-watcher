@@ -1,0 +1,79 @@
+Class ArgumentParser
+
+    Private m_dir      As String
+    Private m_db       As String
+    Private m_function As String
+    Private m_pid      As Long
+    Private m_valid    As Boolean
+    Private m_error    As String
+
+    ' Parses the command-line arguments.
+    '
+    ' Expected format:
+    '   FolderWatcher.exe --dir "C:\Inbox" --db "C:\MyApp.accdb" --function OnNewFile --pid 12345
+    Public Sub Parse(ByVal commandLine As String)
+        m_valid = True
+
+        ' --dir (required): directory to watch
+        If Not ParseFlag(commandLine, "--dir", m_dir) Then
+            m_valid = False
+            m_error = "--dir is required"
+            Exit Sub
+        End If
+
+        ' --db (required): path to running Access database
+        If Not ParseFlag(commandLine, "--db", m_db) Then
+            m_valid = False
+            m_error = "--db is required"
+            Exit Sub
+        End If
+
+        ' --function (required): VBA function name to call
+        If Not ParseFlag(commandLine, "--function", m_function) Then
+            m_valid = False
+            m_error = "--function is required"
+            Exit Sub
+        End If
+
+        ' --pid (required): Access process ID
+        Dim pidStr As String
+        If Not ParseFlag(commandLine, "--pid", pidStr) Then
+            m_valid = False
+            m_error = "--pid is required"
+            Exit Sub
+        End If
+
+        ' Validate PID is a number
+        If Not IsNumeric(pidStr) Then
+            m_valid = False
+            m_error = "--pid must be a number"
+            Exit Sub
+        End If
+        m_pid = CLng(pidStr)
+    End Sub
+
+    Public Property Get WatchDir() As String
+        WatchDir = m_dir
+    End Property
+
+    Public Property Get DatabasePath() As String
+        DatabasePath = m_db
+    End Property
+
+    Public Property Get FunctionName() As String
+        FunctionName = m_function
+    End Property
+
+    Public Property Get ProcessId() As Long
+        ProcessId = m_pid
+    End Property
+
+    Public Property Get IsValid() As Boolean
+        IsValid = m_valid
+    End Property
+
+    Public Property Get ErrorMessage() As String
+        ErrorMessage = m_error
+    End Property
+
+End Class

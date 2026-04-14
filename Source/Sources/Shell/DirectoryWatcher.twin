@@ -1,0 +1,293 @@
+Module DirectoryWatcher
+
+    ' -----------------------------------------------------------------------
+    ' Win32 Constants
+    ' -----------------------------------------------------------------------
+
+    Private Const FILE_LIST_DIRECTORY    As Long = &H1
+    Private Const FILE_SHARE_READ        As Long = &H1
+    Private Const FILE_SHARE_WRITE       As Long = &H2
+    Private Const FILE_SHARE_DELETE      As Long = &H4
+    Private Const OPEN_EXISTING          As Long = 3
+    Private Const FILE_FLAG_BACKUP_SEMANTICS As Long = &H2000000
+    Private Const FILE_FLAG_OVERLAPPED   As Long = &H40000000
+
+    Private Const FILE_NOTIFY_CHANGE_FILE_NAME As Long = &H1
+
+    Private Const FILE_ACTION_ADDED      As Long = &H1
+
+    Private Const WAIT_OBJECT_0          As Long = 0
+    Private Const WAIT_TIMEOUT           As Long = &H102
+    Private Const WAIT_FAILED            As Long = &HFFFFFFFF
+
+    Private Const INVALID_HANDLE_VALUE   As LongPtr = -1
+
+    ' -----------------------------------------------------------------------
+    ' Win32 Types
+    ' -----------------------------------------------------------------------
+
+    Private Type OVERLAPPED
+        Internal     As LongPtr
+        InternalHigh As LongPtr
+        Offset       As Long
+        OffsetHigh   As Long
+        hEvent       As LongPtr
+    End Type
+
+    ' FILE_NOTIFY_INFORMATION is variable-length. We read it from a byte buffer
+    ' using CopyMemory rather than declaring it as a UDT.
+    '   Offset 0:  NextEntryOffset  (Long)
+    '   Offset 4:  Action           (Long)
+    '   Offset 8:  FileNameLength   (Long, in bytes)
+    '   Offset 12: FileName         (Unicode string, not null-terminated)
+
+    ' -----------------------------------------------------------------------
+    ' Win32 API Declarations
+    ' -----------------------------------------------------------------------
+
+    Private Declare PtrSafe Function CreateFileW Lib "kernel32" ( _
+        ByVal lpFileName As LongPtr, _
+        ByVal dwDesiredAccess As Long, _
+        ByVal dwShareMode As Long, _
+        ByVal lpSecurityAttributes As LongPtr, _
+        ByVal dwCreationDisposition As Long, _
+        ByVal dwFlagsAndAttributes As Long, _
+        ByVal hTemplateFile As LongPtr) As LongPtr
+
+    Private Declare PtrSafe Function ReadDirectoryChangesW Lib "kernel32" ( _
+        ByVal hDirectory As LongPtr, _
+        ByVal lpBuffer As LongPtr, _
+        ByVal nBufferLength As Long, _
+        ByVal bWatchSubtree As Long, _
+        ByVal dwNotifyFilter As Long, _
+        ByRef lpBytesReturned As Long, _
+        ByRef lpOverlapped As OVERLAPPED, _
+        ByVal lpCompletionRoutine As LongPtr) As Long
+
+    Private Declare PtrSafe Function GetOverlappedResult Lib "kernel32" ( _
+        ByVal hFile As LongPtr, _
+        ByRef lpOverlapped As OVERLAPPED, _
+        ByRef lpNumberOfBytesTransferred As Long, _
+        ByVal bWait As Long) As Long
+
+    Private Declare PtrSafe Function CreateEventW Lib "kernel32" ( _
+        ByVal lpEventAttributes As LongPtr, _
+        ByVal bManualReset As Long, _
+        ByVal bInitialState As Long, _
+        ByVal lpName As LongPtr) As LongPtr
+
+    Private Declare PtrSafe Function ResetEvent Lib "kernel32" ( _
+        ByVal hEvent As LongPtr) As Long
+
+    Private Declare PtrSafe Function CloseHandle Lib "kernel32" ( _
+        ByVal hObject As LongPtr) As Long
+
+    Private Declare PtrSafe Function WaitForMultipleObjects Lib "kernel32" ( _
+        ByVal nCount As Long, _
+        ByVal lpHandles As LongPtr, _
+        ByVal bWaitAll As Long, _
+        ByVal dwMilliseconds As Long) As Long
+
+    Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" ( _
+        ByRef Destination As Any, _
+        ByRef Source As Any, _
+        ByVal Length As LongPtr)
+
+    ' -----------------------------------------------------------------------
+    ' Module-level state
+    ' -----------------------------------------------------------------------
+
+    Private m_hDirectory   As LongPtr
+    Private m_hEvent       As LongPtr
+    Private m_buffer()     As Byte
+    Private m_overlapped   As OVERLAPPED
+
+    Private Const BUFFER_SIZE As Long = 4096
+
+    ' -----------------------------------------------------------------------
+    ' Public API
+    ' -----------------------------------------------------------------------
+
+    ' Opens the directory for overlapped change notification.
+    ' Returns True on success. On failure, all handles remain at 0.
+    Public Function OpenWatch(ByVal directoryPath As String) As Boolean
+        ' Open directory handle with overlapped flag
+        m_hDirectory = CreateFileW( _
+            StrPtr(directoryPath), _
+            FILE_LIST_DIRECTORY, _
+            FILE_SHARE_READ Or FILE_SHARE_WRITE Or FILE_SHARE_DELETE, _
+            0, _
+            OPEN_EXISTING, _
+            FILE_FLAG_BACKUP_SEMANTICS Or FILE_FLAG_OVERLAPPED, _
+            0)
+
+        If m_hDirectory = INVALID_HANDLE_VALUE Then
+            m_hDirectory = 0
+            OpenWatch = False
+            Exit Function
+        End If
+
+        ' Create manual-reset event for OVERLAPPED
+        m_hEvent = CreateEventW(0, 1, 0, 0)  ' manual reset, initially non-signaled
+
+        If m_hEvent = 0 Then
+            CloseHandle m_hDirectory
+            m_hDirectory = 0
+            OpenWatch = False
+            Exit Function
+        End If
+
+        ' Allocate notification buffer
+        ReDim m_buffer(0 To BUFFER_SIZE - 1)
+
+        OpenWatch = True
+    End Function
+
+    ' Issues an asynchronous ReadDirectoryChangesW call.
+    ' Returns True if the call was submitted successfully.
+    ' The caller should wait on the event handle (via WaitOnHandles) for completion.
+    Public Function ArmWatch() As Boolean
+        If m_hDirectory = 0 Then
+            ArmWatch = False
+            Exit Function
+        End If
+
+        ' Reset the event before issuing a new read
+        ResetEvent m_hEvent
+
+        ' Zero the OVERLAPPED structure and set the event handle
+        Dim ov As OVERLAPPED
+        m_overlapped = ov  ' zero all fields
+        m_overlapped.hEvent = m_hEvent
+
+        Dim bytesReturned As Long
+        Dim result As Long
+        result = ReadDirectoryChangesW( _
+            m_hDirectory, _
+            VarPtr(m_buffer(0)), _
+            BUFFER_SIZE, _
+            0, _                           ' bWatchSubtree = False (top-level only)
+            FILE_NOTIFY_CHANGE_FILE_NAME, _ ' new files, deleted files, renames
+            bytesReturned, _
+            m_overlapped, _
+            0)                             ' no completion routine
+
+        ArmWatch = (result <> 0)
+    End Function
+
+    ' Returns the event handle for use with WaitForMultipleObjects.
+    Public Function GetEventHandle() As LongPtr
+        GetEventHandle = m_hEvent
+    End Function
+
+    ' After the event is signaled, retrieves all FILE_ACTION_ADDED file names
+    ' from the notification buffer.
+    ' Returns an array of file names (may be empty if no added files).
+    Public Function GetAddedFiles() As String()
+        Dim result() As String
+        Dim count As Long
+        count = 0
+
+        ' Get the actual bytes transferred
+        Dim bytesTransferred As Long
+        If GetOverlappedResult(m_hDirectory, m_overlapped, bytesTransferred, 0) = 0 Then
+            GetAddedFiles = result
+            Exit Function
+        End If
+
+        If bytesTransferred = 0 Then
+            GetAddedFiles = result
+            Exit Function
+        End If
+
+        ' Walk the FILE_NOTIFY_INFORMATION chain in the buffer
+        Dim offset As Long
+        offset = 0
+
+        Do
+            ' Read fields from buffer at current offset
+            Dim nextEntryOffset As Long
+            Dim action As Long
+            Dim fileNameLength As Long
+
+            CopyMemory nextEntryOffset, m_buffer(offset), 4
+            CopyMemory action, m_buffer(offset + 4), 4
+            CopyMemory fileNameLength, m_buffer(offset + 8), 4
+
+            If action = FILE_ACTION_ADDED And fileNameLength > 0 Then
+                ' Extract the Unicode file name
+                Dim fileName As String
+                fileName = Space$(fileNameLength \ 2)
+                CopyMemory ByVal StrPtr(fileName), m_buffer(offset + 12), fileNameLength
+
+                ' Add to result array
+                ReDim Preserve result(0 To count)
+                result(count) = fileName
+                count = count + 1
+            End If
+
+            ' Move to next entry (0 means this is the last entry)
+            If nextEntryOffset = 0 Then Exit Do
+            offset = offset + nextEntryOffset
+        Loop
+
+        GetAddedFiles = result
+    End Function
+
+    ' Waits for either a directory change, a process exit, or a timeout.
+    '
+    ' Parameters:
+    '   hProcess          - Handle to the Access process (from ProcessMonitor)
+    '   timeoutMs         - Timeout in milliseconds (e.g., 300000 for 5 minutes)
+    '
+    ' Returns:
+    '   0 = Directory change detected (call GetAddedFiles to retrieve file names)
+    '   1 = Process exited
+    '   2 = Timeout
+    '  -1 = Error
+    Public Function WaitOnHandles(ByVal hProcess As LongPtr, _
+                                  ByVal timeoutMs As Long) As Long
+        ' Build handle array: [0] = dir event, [1] = process handle
+        Dim handles(0 To 1) As LongPtr
+        handles(0) = m_hEvent
+        handles(1) = hProcess
+
+        Dim handleCount As Long
+        If hProcess <> 0 Then
+            handleCount = 2
+        Else
+            ' No process handle — just wait on directory + timeout
+            handleCount = 1
+        End If
+
+        Dim result As Long
+        result = WaitForMultipleObjects(handleCount, VarPtr(handles(0)), 0, timeoutMs)
+
+        Select Case result
+            Case WAIT_OBJECT_0
+                WaitOnHandles = 0     ' directory change
+            Case WAIT_OBJECT_0 + 1
+                WaitOnHandles = 1     ' process exited
+            Case WAIT_TIMEOUT
+                WaitOnHandles = 2     ' timeout
+            Case Else
+                WaitOnHandles = -1    ' error
+        End Select
+    End Function
+
+    ' Closes all handles and releases the buffer.
+    Public Sub CloseWatch()
+        If m_hDirectory <> 0 Then
+            CloseHandle m_hDirectory
+            m_hDirectory = 0
+        End If
+
+        If m_hEvent <> 0 Then
+            CloseHandle m_hEvent
+            m_hEvent = 0
+        End If
+
+        Erase m_buffer
+    End Sub
+
+End Module

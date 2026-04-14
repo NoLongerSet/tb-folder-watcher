@@ -1,0 +1,12 @@
+# twinBASIC
+*.twinproj
+Source/Build/
+Source/Packages/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDE
+.vs/
+*.user

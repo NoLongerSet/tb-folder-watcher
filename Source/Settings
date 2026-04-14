@@ -1,0 +1,35 @@
+{
+	"configuration.inherits": "Defaults",
+	"project.appTitle": "FolderWatcher",
+	"project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
+	"project.buildType": "Standard EXE",
+	"project.description": "Monitors a directory and calls a VBA function in a running Access application when new files appear",
+	"project.exportAfterSave": false,
+	"project.exportPath": "${SourcePath}\\Source",
+	"project.exportPathIsV2": true,
+	"project.forceDpiAwarenessAtStartup": "SYSTEM_DPI_AWARE",
+	"project.id": "{A7E3F1B2-5C4D-4E6F-8A9B-1D2E3F4A5B6C}",
+	"project.name": "FolderWatcher",
+	"project.optionExplicit": true,
+	"project.references": [
+		{
+			"id": "{00020430-0000-0000-C000-000000000046}",
+			"lcid": 0,
+			"name": "OLE Automation",
+			"path32": "C:\\Windows\\SysWow64\\stdole2.tlb",
+			"path64": "C:\\Windows\\System32\\stdole2.tlb",
+			"symbolId": "stdole",
+			"versionMajor": 2,
+			"versionMinor": 0
+		}
+	],
+	"project.settingsVersion": 1,
+	"project.warnings": {
+		"errors": [],
+		"hints": [],
+		"ignored": [],
+		"info": [],
+		"warnings": []
+	},
+	"runtime.useUnicodeStandardLibrary": true
+}

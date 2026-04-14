@@ -1,0 +1,93 @@
+Module ArgumentParserCore
+
+    ' Finds a complete CLI flag in a command line string, returning its position (1-based).
+    ' A "complete" match means the flag is followed by a space or is at end of string,
+    ' preventing "--dir" from matching inside "--directory".
+    ' Returns 0 if no complete match is found.
+    Public Function FindFlag(ByVal args As String, ByVal flag As String) As Long
+        Dim searchStart As Long
+        searchStart = 1
+
+        Do
+            Dim pos As Long
+            pos = InStr(searchStart, args, flag, vbTextCompare)
+
+            If pos = 0 Then
+                FindFlag = 0
+                Exit Function
+            End If
+
+            ' Check the character after the flag — must be space or end of string
+            Dim afterPos As Long
+            afterPos = pos + Len(flag)
+
+            If afterPos > Len(args) Then
+                ' Flag is at end of string (complete match, no value)
+                FindFlag = pos
+                Exit Function
+            End If
+
+            Dim afterChar As String
+            afterChar = Mid$(args, afterPos, 1)
+
+            If afterChar = " " Then
+                ' Complete match
+                FindFlag = pos
+                Exit Function
+            End If
+
+            ' Partial match — keep searching
+            searchStart = afterPos
+        Loop
+    End Function
+
+    ' Extracts the value following a CLI flag. Returns True if the flag was found with a value.
+    ' Matches only complete flags (e.g., "--dir" won't match "--directory").
+    Public Function ParseFlag(ByVal args As String, ByVal flag As String, ByRef value As String) As Boolean
+        Dim pos As Long
+        pos = FindFlag(args, flag)
+
+        If pos = 0 Then
+            ParseFlag = False
+            Exit Function
+        End If
+
+        Dim rest As String
+        rest = LTrim$(Mid$(args, pos + Len(flag)))
+
+        If Len(rest) = 0 Then
+            ParseFlag = False
+            Exit Function
+        End If
+
+        ' Handle quoted values (paths with spaces)
+        If Left$(rest, 1) = """" Then
+            Dim closeQuote As Long
+            closeQuote = InStr(2, rest, """")
+            If closeQuote > 0 Then
+                value = Mid$(rest, 2, closeQuote - 2)
+            Else
+                ' No closing quote — take everything after the opening quote
+                value = Mid$(rest, 2)
+            End If
+        Else
+            ' Read until the next --flag or end of string
+            Dim nextFlag As Long
+            nextFlag = InStr(2, rest, " --")
+            If nextFlag > 0 Then
+                value = RTrim$(Left$(rest, nextFlag - 1))
+            Else
+                value = rest
+            End If
+        End If
+
+        ParseFlag = (Len(value) > 0)
+    End Function
+
+    ' Checks if a boolean flag (no value) is present in the command line.
+    ' Matches only complete flags.
+    Public Function HasFlag(ByVal args As String, ByVal flag As String) As Boolean
+        HasFlag = (FindFlag(args, flag) > 0)
+    End Function
+
+End Module

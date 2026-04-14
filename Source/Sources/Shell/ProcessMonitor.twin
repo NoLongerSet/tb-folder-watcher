@@ -1,0 +1,49 @@
+Module ProcessMonitor
+
+    Private Const SYNCHRONIZE As Long = &H100000
+    Private Const STILL_ACTIVE As Long = 259
+
+    Private Declare PtrSafe Function OpenProcess Lib "kernel32" ( _
+        ByVal dwDesiredAccess As Long, _
+        ByVal bInheritHandle As Long, _
+        ByVal dwProcessId As Long) As LongPtr
+
+    Private Declare PtrSafe Function GetExitCodeProcess Lib "kernel32" ( _
+        ByVal hProcess As LongPtr, _
+        ByRef lpExitCode As Long) As Long
+
+    Private Declare PtrSafe Function CloseHandle Lib "kernel32" ( _
+        ByVal hObject As LongPtr) As Long
+
+    ' Opens a handle to the specified process for synchronization.
+    ' The handle becomes signaled when the process exits, making it
+    ' usable with WaitForMultipleObjects.
+    ' Returns 0 if the process cannot be opened (invalid PID, insufficient rights).
+    Public Function OpenProcessHandle(ByVal processId As Long) As LongPtr
+        OpenProcessHandle = OpenProcess(SYNCHRONIZE, 0, processId)
+    End Function
+
+    ' Checks whether a process is still running by querying its exit code.
+    ' Returns True if the process is alive, False if it has exited or the handle is invalid.
+    Public Function IsProcessAlive(ByVal hProcess As LongPtr) As Boolean
+        If hProcess = 0 Then
+            IsProcessAlive = False
+            Exit Function
+        End If
+
+        Dim exitCode As Long
+        If GetExitCodeProcess(hProcess, exitCode) <> 0 Then
+            IsProcessAlive = (exitCode = STILL_ACTIVE)
+        Else
+            IsProcessAlive = False
+        End If
+    End Function
+
+    ' Closes a process handle. Safe to call with 0 (no-op).
+    Public Sub CloseProcessHandle(ByVal hProcess As LongPtr)
+        If hProcess <> 0 Then
+            CloseHandle hProcess
+        End If
+    End Sub
+
+End Module

@@ -1,0 +1,55 @@
+Module AccessCallback
+
+    ' Calls a public VBA function in a running Access application via COM automation.
+    '
+    ' Connects to the Access instance that has the specified database open using
+    ' GetObject(dbPath), calls Application.Run(funcName, fileName), then releases
+    ' the reference immediately. The COM reference is held for only milliseconds
+    ' to avoid preventing Access from closing cleanly.
+    '
+    ' Parameters:
+    '   dbPath   - Full path to the running .accdb/.accde file
+    '   funcName - Name of the public VBA function to call
+    '   fileName - File path to pass as the function's argument
+    '
+    ' Returns True if the callback succeeded, False otherwise.
+    Public Function InvokeAccessCallback(ByVal dbPath As String, _
+                                         ByVal funcName As String, _
+                                         ByVal fileName As String) As Boolean
+        Dim accessApp As Object
+
+        ' Connect to the running Access instance that has this database open.
+        ' GetObject(path) uses the Running Object Table (ROT) to find the instance.
+        ' Unlike CreateObject, this does NOT launch a new Access process.
+        On Error Resume Next
+        Set accessApp = GetObject(dbPath)
+
+        If Err.Number <> 0 Then
+            ' Access may have closed between the PID check and this call,
+            ' or the database path doesn't match the running instance.
+            On Error GoTo 0
+            InvokeAccessCallback = False
+            Exit Function
+        End If
+        On Error GoTo 0
+
+        ' Call the VBA function with the new file path as the argument.
+        On Error Resume Next
+        accessApp.Run funcName, fileName
+
+        If Err.Number <> 0 Then
+            ' Function not found, wrong signature, or runtime error in VBA.
+            Set accessApp = Nothing
+            On Error GoTo 0
+            InvokeAccessCallback = False
+            Exit Function
+        End If
+        On Error GoTo 0
+
+        ' Release the COM reference immediately.
+        Set accessApp = Nothing
+
+        InvokeAccessCallback = True
+    End Function
+
+End Module
