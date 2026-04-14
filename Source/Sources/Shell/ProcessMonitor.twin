@@ -1,21 +1,5 @@
 Module ProcessMonitor
 
-    Private Const SYNCHRONIZE As Long = &H100000
-    Private Const PROCESS_QUERY_LIMITED_INFORMATION As Long = &H1000
-    Private Const STILL_ACTIVE As Long = 259
-
-    Private Declare PtrSafe Function OpenProcess Lib "kernel32" ( _
-        ByVal dwDesiredAccess As Long, _
-        ByVal bInheritHandle As Long, _
-        ByVal dwProcessId As Long) As LongPtr
-
-    Private Declare PtrSafe Function GetExitCodeProcess Lib "kernel32" ( _
-        ByVal hProcess As LongPtr, _
-        ByRef lpExitCode As Long) As Long
-
-    Private Declare PtrSafe Function CloseHandle Lib "kernel32" ( _
-        ByVal hObject As LongPtr) As Long
-
     ' Opens a handle to the specified process for synchronization.
     ' The handle becomes signaled when the process exits, making it
     ' usable with WaitForMultipleObjects.
