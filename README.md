@@ -6,9 +6,9 @@ Built for the [Access DevCon Vienna 2026](https://www.accessdevcon.com/) talk on
 
 ## Why?
 
-Access VBA has no way to receive file system notifications. The only option is polling with a `Form_Timer` event and `Dir()` calls — slow, CPU-wasteful, and it blocks the UI.
+Access VBA's only option for detecting new files is polling with a `Form_Timer` event and `Dir()` calls — slow, CPU-wasteful, and it blocks the UI.
 
-FolderWatcher uses Windows APIs that are simply unavailable from VBA to deliver a better experience:
+FolderWatcher runs as a separate process and uses Windows APIs to deliver a fundamentally better experience:
 
 | Capability | VBA Polling | FolderWatcher |
 |---|---|---|
@@ -18,6 +18,27 @@ FolderWatcher uses Windows APIs that are simply unavailable from VBA to deliver 
 | **Knows the filename** | Must diff directory listings | Exact filename from the OS |
 | **Blocks Access UI** | Yes, during each `Dir()` scan | No — runs in a separate process |
 | **Cleanup on exit** | Manual (must remember to stop timer) | Automatic (detects Access closing) |
+
+## Why can't I simply call these APIs from Access?
+
+You can — VBA can `Declare` and call every Win32 API that FolderWatcher uses. `ReadDirectoryChangesW`, `WaitForMultipleObjects`, `OpenProcess` — all of them work from VBA. The APIs aren't the problem. The execution model is.
+
+**VBA is single-threaded and runs inside the Access process.** That one constraint makes the efficient approach unusable:
+
+- **`WaitForMultipleObjects` blocks the calling thread.** In FolderWatcher's exe, that's fine — the thread has nothing else to do. In VBA, that's the *only* thread. Call it and Access freezes completely — no form interaction, no repainting, nothing — until a file appears or the timeout expires.
+
+- **You can't move VBA code to a separate process.** There's no way to `Shell` a VBA script. VBA code runs inside `MSACCESS.EXE`, so there's nowhere to put a blocking wait that won't freeze the UI.
+
+- **The VBA workaround is just polling with extra steps.** You *could* set up `ReadDirectoryChangesW` with overlapped I/O from VBA, then use `Form_Timer` to periodically call `GetOverlappedResult` with `bWait=False` to check if the event fired. But now you're polling on a timer again — you've replaced `Dir()` with a fancier notification buffer while losing the "zero CPU, instant response, thread sleeps in the kernel" benefit.
+
+| | VBA (in-process) | twinBASIC .exe (separate process) |
+|---|---|---|
+| Can call `ReadDirectoryChangesW` | Yes | Yes |
+| Can call `WaitForMultipleObjects` | Yes, but freezes Access | Yes — own process, no impact |
+| Can block without consequences | No | Yes |
+| Can monitor a process handle for exit | Must poll with a timer | Kernel wakes the thread instantly |
+
+**The separate process is the key enabler.** It's what makes blocking waits free, keeps Access responsive, and lets the OS kernel do all the work at zero CPU cost. twinBASIC's role is that it compiles to a standalone `.exe` using syntax that Access developers already know — same `Declare` statements, same `Sub`/`Function` structure, same API calling conventions.
 
 ## Features
 
