@@ -47,6 +47,7 @@ Private Const PROCESS_TERMINATE As Long = &H1
 Private Const RESOURCE_TABLE As String = "usys_Resources"
 Private Const RESOURCE_NAME_32 As String = "FolderWatcher_win32.exe"
 Private Const RESOURCE_NAME_64 As String = "FolderWatcher_win64.exe"
+Private Const APP_ICON As String = "folderwatcher.ico"
 
 ' Tracks the watcher's process ID so we can stop it later
 Private m_watcherTaskId As Long
@@ -122,6 +123,37 @@ End Sub
 ' -----------------------------------------------------------------------
 ' Private helpers
 ' -----------------------------------------------------------------------
+
+' Extracts the app icon from usys_Resources and sets it as the Access
+' application icon. Call from a startup form or AutoExec macro.
+Public Sub SetAppIcon()
+    Dim fpIcon As String
+    fpIcon = CurrentProject.Path & "\" & APP_ICON
+
+    ' Extract the .ico if it doesn't exist on disk yet
+    If Dir(fpIcon) = "" Then
+        If Not ExtractResource(APP_ICON, fpIcon) Then Exit Sub
+    End If
+
+    ' Set the AppIcon database property (creates it if needed)
+    Dim RelPath As String
+    RelPath = "rel:" & APP_ICON
+
+    On Error Resume Next
+    Dim prp As DAO.Property
+    If CurrentDb.Properties("AppIcon") <> RelPath Then
+        CurrentDb.Properties("AppIcon") = RelPath
+    End If
+    If Err.Number = 3270 Then
+        ' Property doesn't exist yet -- create it
+        Err.Clear
+        Set prp = CurrentDb.CreateProperty("AppIcon", dbText, RelPath)
+        CurrentDb.Properties.Append prp
+    End If
+    On Error GoTo 0
+
+    Application.RefreshTitleBar
+End Sub
 
 ' Extracts the exe from the usys_Resources table if it doesn't already
 ' exist on disk next to the database.

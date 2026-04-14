@@ -5,6 +5,10 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
+Private Sub Form_Open(Cancel As Integer)
+    SetAppIcon
+End Sub
+
 Private Sub toggleWatchFolder_AfterUpdate()
     If Me.toggleWatchFolder.Value Then
         StartWatching Me.tbFolderToWatch.Value
