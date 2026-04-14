@@ -48,7 +48,7 @@ Uses the Windows `ReadDirectoryChangesW` API with overlapped I/O to receive file
 
 ### Zero Dependencies
 
-Single `.exe` file. No DLL registration, no COM components to install, no runtime prerequisites. Place it next to your Access database and it just works. Builds are available for both 32-bit and 64-bit Access.
+Single `.exe` file. No DLL registration, no COM components to install, no runtime prerequisites. Place it next to your Access database or [embed it directly in the `.accdb`](#embedding-the-executable) for fully self-contained distribution. Builds are available for both 32-bit and 64-bit Access.
 
 ### On-Demand COM Callbacks
 
@@ -126,6 +126,51 @@ Your `OnNewFile` function fires immediately with the full path of the new file.
 ## Sample Module
 
 See [`samples/modFolderWatcher.bas`](samples/modFolderWatcher.bas) for a complete Access VBA module with `StartWatching`, `StopWatching`, and a sample `OnNewFile` callback. A sample Access database source is also included in [`samples/FolderWatcherSample.accdb.src/`](samples/FolderWatcherSample.accdb.src/).
+
+## Embedding the Executable
+
+Instead of distributing the `.exe` files alongside your database, you can embed them directly inside the `.accdb` as binary resources. The database becomes fully self-contained — one file to distribute, nothing to install.
+
+This is a general-purpose technique for any small utility, but it's especially powerful when paired with [twinBASIC](https://twinbasic.com/). twinBASIC compiles to compact, dependency-free executables using syntax Access developers already know. That makes it practical to build purpose-built helper utilities — file watchers, background processors, system integrations — and ship them invisibly inside the database that uses them.
+
+### How it works
+
+The sample module stores executables in a `usys_Resources` table (the `usys_` prefix hides it from the Navigation Pane):
+
+```sql
+CREATE TABLE usys_Resources (
+    ResourceName TEXT(255) NOT NULL PRIMARY KEY,
+    ResourceData LONGBINARY NOT NULL
+)
+```
+
+When `StartWatching` is called, it checks whether the `.exe` exists on disk next to the database. If not, it reads the raw bytes from `usys_Resources` and writes them to the file system before launching. On subsequent calls, the file is already there and extraction is skipped.
+
+### Setup
+
+From the Immediate Window, import the executables once:
+
+```vba
+ImportExe "C:\path\to\FolderWatcher_win32.exe"
+ImportExe "C:\path\to\FolderWatcher_win64.exe"
+```
+
+This creates the `usys_Resources` table (if needed) and stores the binary contents. The `.accdb` is now self-deploying — distribute it to users and the exe is extracted automatically on first use.
+
+After rebuilding the twinBASIC project, re-import with:
+
+```vba
+ReimportFolderWatcherExes
+```
+
+### Adapting the pattern
+
+The resource table and extraction logic are generic. To embed a different file:
+
+1. Import it: `ImportExe "C:\path\to\anything.dll"`
+2. Extract it at runtime: call `ExtractResource "anything.dll", destPath`
+
+The `LONGBINARY` field stores raw bytes with no OLE wrapper overhead, and the extraction code handles files of any size using simple binary I/O.
 
 ## How It Works
 
