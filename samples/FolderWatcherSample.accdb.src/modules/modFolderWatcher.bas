@@ -54,7 +54,11 @@ Public Sub StartWatching(ByVal FolderPath As String, _
     End If
 
     Dim exePath As String
-    exePath = CurrentProject.Path & "\FolderWatcher.exe"
+    #If Win64 Then
+    exePath = CurrentProject.Path & "\FolderWatcher_win64.exe"
+    #Else
+    exePath = CurrentProject.Path & "\FolderWatcher_win32.exe"
+    #End If
 
     If Dir(exePath) = "" Then
         MsgBox "FolderWatcher.exe not found in:" & vbCrLf & CurrentProject.Path, vbCritical
