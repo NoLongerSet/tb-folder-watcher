@@ -1,5 +1,6 @@
 # twinBASIC
 *.twinproj
+Build/
 Source/Build/
 Source/Packages/
 
@@ -7,6 +8,8 @@ Source/Packages/
 *.accdb
 *.accde
 *.laccdb
+samples/*.exe
+samples/*.ico
 vcs-index.json
 **/logs/*.log
 
@@ -17,3 +20,6 @@ desktop.ini
 # IDE
 .vs/
 *.user
+
+# Claude Code
+.claude/

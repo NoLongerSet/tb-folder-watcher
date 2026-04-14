@@ -40,6 +40,7 @@
 		{
 			"autoCtlExt": true,
 			"id": "{1FCDB98D-617D-4995-9736-2ED0E4746A10}",
+			"isLocalPackage": false,
 			"licence": "CC0 1.0 Universal",
 			"name": "[IMPORTED] Windows Development Library for twinBASIC v9.3.684",
 			"path32": "/Packages/WinDevLib",

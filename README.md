@@ -222,6 +222,10 @@ The main loop in [`Main.twin`](Source/Sources/App/Main.twin) waits on two kernel
 
 `WaitForMultipleObjects` blocks the thread until one of these fires. No CPU is consumed while waiting. When a file event arrives, it parses the `FILE_NOTIFY_INFORMATION` buffer to get the exact filename, makes the COM callback, and re-arms the watch. When the process handle fires, it exits cleanly.
 
+## Pre-built Binaries
+
+Signed executables for both 32-bit and 64-bit Access are available on the [Releases](https://github.com/NoLongerSet/tb-folder-watcher/releases) page. Download the one that matches your Access installation and skip straight to the [Quick Start](#quick-start).
+
 ## Building from Source
 
 ### Prerequisites
