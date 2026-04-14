@@ -8,7 +8,39 @@
       "Value": "09.50",
       "Type": 10
     },
+    "AllowBuiltInToolbars": {
+      "Value": true,
+      "Type": 1
+    },
+    "AllowDatasheetSchema": {
+      "Value": true,
+      "Type": 1
+    },
+    "AllowFullMenus": {
+      "Value": true,
+      "Type": 1
+    },
+    "AllowShortcutMenus": {
+      "Value": true,
+      "Type": 1
+    },
+    "AllowSpecialKeys": {
+      "Value": true,
+      "Type": 1
+    },
+    "AllowToolbarChanges": {
+      "Value": true,
+      "Type": 1
+    },
     "ANSI Query Mode": {
+      "Value": 0,
+      "Type": 4
+    },
+    "AppTitle": {
+      "Value": "Folder Watcher Demo",
+      "Type": 10
+    },
+    "Auto Compact": {
       "Value": 0,
       "Type": 4
     },
@@ -28,6 +60,10 @@
       "Value": "",
       "Type": 12
     },
+    "Continuous Form Record Navigation Keys": {
+      "Value": 0,
+      "Type": 4
+    },
     "Default Zoom Level": {
       "Value": 100,
       "Type": 4
@@ -35,6 +71,10 @@
     "DesignMasterID": {
       "Value": "",
       "Type": 15
+    },
+    "DesignWithData": {
+      "Value": true,
+      "Type": 1
     },
     "HasOfflineLists": {
       "Value": 70,
@@ -96,7 +136,35 @@
       "Value": 1,
       "Type": 4
     },
+    "Show Values in Indexed": {
+      "Value": 1,
+      "Type": 4
+    },
+    "Show Values in Non-Indexed": {
+      "Value": 1,
+      "Type": 4
+    },
+    "Show Values in Remote": {
+      "Value": 0,
+      "Type": 4
+    },
+    "Show Values Limit": {
+      "Value": 1000,
+      "Type": 4
+    },
     "ShowDocumentTabs": {
+      "Value": true,
+      "Type": 1
+    },
+    "StartUpForm": {
+      "Value": "FolderWatcher",
+      "Type": 10
+    },
+    "StartUpShowDBWindow": {
+      "Value": true,
+      "Type": 1
+    },
+    "StartUpShowStatusBar": {
       "Value": true,
       "Type": 1
     },
@@ -112,9 +180,21 @@
       "Value": true,
       "Type": 1
     },
+    "Use BigInt for linking and importing data": {
+      "Value": 0,
+      "Type": 4
+    },
+    "Use DateTime2 for linking and importing data": {
+      "Value": 0,
+      "Type": 4
+    },
     "Use Microsoft Access 2007 compatible cache": {
       "Value": 0,
       "Type": 4
+    },
+    "UseAppIconForFrmRpt": {
+      "Value": false,
+      "Type": 1
     },
     "UseMDIMode": {
       "Value": 0,

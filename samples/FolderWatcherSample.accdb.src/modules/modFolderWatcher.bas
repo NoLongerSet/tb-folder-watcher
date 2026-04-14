@@ -2,6 +2,8 @@
 Option Compare Database
 Option Explicit
 
+Private Const APP_VERSION As String = "1.0.0"
+
 ' -----------------------------------------------------------------------
 ' modFolderWatcher
 '
@@ -48,6 +50,11 @@ Private Const RESOURCE_NAME_64 As String = "FolderWatcher_win64.exe"
 
 ' Tracks the watcher's process ID so we can stop it later
 Private m_watcherTaskId As Long
+
+
+Public Function GetAppVersion() As String
+    GetAppVersion = APP_VERSION
+End Function
 
 ' Starts the folder watcher utility.
 '
@@ -232,7 +239,6 @@ Public Sub ImportExe(ByVal ExePath As String)
     Debug.Print "Imported: " & ResourceName & " (" & UBound(b) & " bytes)"
 End Sub
 
-' Re-imports both FolderWatcher exes from the Build folder into usys_Resources.
 Public Sub ReimportFolderWatcherExes()
     ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win32.exe"
     ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win64.exe"
