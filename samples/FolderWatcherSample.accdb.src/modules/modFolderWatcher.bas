@@ -90,7 +90,7 @@ Public Sub StartWatching(ByVal FolderPath As String, _
           " --function " & CallbackFunction & _
           " --pid " & GetCurrentProcessId()
 
-    m_watcherTaskId = Shell(cmd, vbMinimizedNoFocus)
+    m_watcherTaskId = Shell(cmd, vbHide)
 
     If m_watcherTaskId = 0 Then
         MsgBox "Failed to start FolderWatcher.exe", vbCritical
