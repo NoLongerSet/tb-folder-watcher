@@ -172,6 +172,10 @@
       "Value": true,
       "Type": 1
     },
+    "Theme Resource Name": {
+      "Value": "Office Theme",
+      "Type": 10
+    },
     "Themed Form Controls": {
       "Value": 1,
       "Type": 4

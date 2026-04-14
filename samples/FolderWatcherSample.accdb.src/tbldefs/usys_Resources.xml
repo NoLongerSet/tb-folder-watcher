@@ -12,6 +12,7 @@
     <xsd:annotation>
       <xsd:appinfo>
         <od:index index-name="Index_1C5C4F29_79DF_418F" index-key="ResourceName " primary="yes" unique="yes" clustered="no" order="asc"></od:index>
+        <od:tableProperty name="Orientation" type="2" value="0"></od:tableProperty>
       </xsd:appinfo>
     </xsd:annotation>
     <xsd:complexType>

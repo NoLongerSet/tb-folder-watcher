@@ -1,7 +1,7 @@
 ﻿{
   "Info": {
-    "AddinVersion": "4.1.4",
-    "AccessVersion": "16.0 32-bit"
+    "AddinVersion": "4.1.7",
+    "AccessVersion": "16.0 64-bit"
   },
   "Options": {
     "ExportFolder": "",
@@ -63,6 +63,7 @@
     "HashAlgorithm": "SHA256",
     "UseShortHash": true,
     "BreakOnError": false,
-    "PreserveRubberDuckID": false
+    "PreserveRubberDuckID": false,
+    "MaxLogFiles": 20
   }
 }
