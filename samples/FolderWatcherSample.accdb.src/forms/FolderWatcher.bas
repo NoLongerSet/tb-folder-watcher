@@ -21,6 +21,7 @@ Begin Form
         0x0eb1fbebcc85e640
     End
     Caption ="Folder Watcher"
+    OnOpen ="[Event Procedure]"
     DatasheetFontName ="Aptos"
     AllowDatasheetView =0
     FilterOnLoad =0

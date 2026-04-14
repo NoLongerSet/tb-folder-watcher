@@ -36,6 +36,10 @@
       "Value": 0,
       "Type": 4
     },
+    "AppIcon": {
+      "Value": "rel:folderwatcher.ico",
+      "Type": 10
+    },
     "AppTitle": {
       "Value": "Folder Watcher Demo",
       "Type": 10
