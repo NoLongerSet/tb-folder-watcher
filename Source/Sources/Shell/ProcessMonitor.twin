@@ -1,6 +1,7 @@
 Module ProcessMonitor
 
     Private Const SYNCHRONIZE As Long = &H100000
+    Private Const PROCESS_QUERY_LIMITED_INFORMATION As Long = &H1000
     Private Const STILL_ACTIVE As Long = 259
 
     Private Declare PtrSafe Function OpenProcess Lib "kernel32" ( _
@@ -20,7 +21,7 @@ Module ProcessMonitor
     ' usable with WaitForMultipleObjects.
     ' Returns 0 if the process cannot be opened (invalid PID, insufficient rights).
     Public Function OpenProcessHandle(ByVal processId As Long) As LongPtr
-        OpenProcessHandle = OpenProcess(SYNCHRONIZE, 0, processId)
+        OpenProcessHandle = OpenProcess(SYNCHRONIZE Or PROCESS_QUERY_LIMITED_INFORMATION, 0, processId)
     End Function
 
     ' Checks whether a process is still running by querying its exit code.
