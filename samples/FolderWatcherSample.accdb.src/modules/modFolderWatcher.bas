@@ -136,18 +136,15 @@ Public Sub SetAppIcon()
     End If
 
     ' Set the AppIcon database property (creates it if needed)
-    Dim RelPath As String
-    RelPath = "rel:" & APP_ICON
-
     On Error Resume Next
     Dim prp As DAO.Property
-    If CurrentDb.Properties("AppIcon") <> RelPath Then
-        CurrentDb.Properties("AppIcon") = RelPath
+    If CurrentDb.Properties("AppIcon") <> fpIcon Then
+        CurrentDb.Properties("AppIcon") = fpIcon
     End If
     If Err.Number = 3270 Then
         ' Property doesn't exist yet -- create it
         Err.Clear
-        Set prp = CurrentDb.CreateProperty("AppIcon", dbText, RelPath)
+        Set prp = CurrentDb.CreateProperty("AppIcon", dbText, fpIcon)
         CurrentDb.Properties.Append prp
     End If
     On Error GoTo 0
@@ -274,6 +271,7 @@ End Sub
 Public Sub ReimportFolderWatcherExes()
     ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win32.exe"
     ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win64.exe"
+    ImportExe CurrentProject.Path & "\folderwatcher.ico"
 End Sub
 
 ' -----------------------------------------------------------------------
