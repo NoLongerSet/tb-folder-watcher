@@ -84,10 +84,20 @@ End Sub
 Public Sub StopWatching()
     If m_watcherTaskId = 0 Then Exit Sub
 
-    ' The Shell function returns a task ID, not a process ID.
-    ' The watcher will exit on its own when it detects Access has closed,
-    ' but for immediate shutdown we can terminate the process.
-    ' In practice, closing Access is the cleanest way to stop the watcher.
+    ' Shell() returns the process ID — use it to terminate the watcher
+    #If VBA7 Then
+    Dim hProcess As LongPtr
+    #Else
+    Dim hProcess As Long
+    #End If
+
+    hProcess = OpenProcess(PROCESS_TERMINATE, 0, m_watcherTaskId)
+
+    If hProcess <> 0 Then
+        TerminateProcess hProcess, 0
+        CloseHandle hProcess
+    End If
+
     m_watcherTaskId = 0
 End Sub
 
