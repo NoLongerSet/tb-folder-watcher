@@ -162,15 +162,16 @@ Module DirectoryWatcher
 
         Dim bytesReturned As Long
         Dim result As Long
+        ' bWatchSubtree = False (top-level only), no completion routine
         result = ReadDirectoryChangesW( _
             m_hDirectory, _
             VarPtr(m_buffer(0)), _
             BUFFER_SIZE, _
-            0, _                           ' bWatchSubtree = False (top-level only)
-            FILE_NOTIFY_CHANGE_FILE_NAME, _ ' new files, deleted files, renames
+            0, _
+            FILE_NOTIFY_CHANGE_FILE_NAME, _
             bytesReturned, _
             m_overlapped, _
-            0)                             ' no completion routine
+            0)
 
         ArmWatch = (result <> 0)
     End Function
