@@ -3,12 +3,13 @@
 	"project.appTitle": "FolderWatcher",
 	"project.buildPath": "${SourcePath}\\Build\\${ProjectName}_${Architecture}.${FileExtension}",
 	"project.buildType": "Standard EXE",
-	"project.description": "Monitors a directory and calls a VBA function in a running Access application when new files appear",
-	"project.exportAfterSave": false,
+	"project.description": "FolderWatcher",
 	"project.exportPath": "${SourcePath}\\Source",
 	"project.exportPathIsV2": true,
 	"project.forceDpiAwarenessAtStartup": "SYSTEM_DPI_AWARE",
-	"project.id": "{A7E3F1B2-5C4D-4E6F-8A9B-1D2E3F4A5B6C}",
+	"project.id": "{9D1817F9-EA0A-427F-8238-1E3D5E4B043B}",
+	"project.isConsoleApplication": true,
+	"project.largeAddressAware": true,
 	"project.name": "FolderWatcher",
 	"project.optionExplicit": true,
 	"project.references": [
@@ -21,9 +22,24 @@
 			"symbolId": "stdole",
 			"versionMajor": 2,
 			"versionMinor": 0
+		},
+		{
+			"id": "{C192FB39-64CA-4D9B-B477-A5502F48EFCC}",
+			"isCompilerPackage": true,
+			"licence": "MIT",
+			"name": "[COMPILER PACKAGE] twinBASIC - App global class object",
+			"path32": "",
+			"path64": "",
+			"publisher": "TWINBASIC-COMPILER",
+			"symbolId": "AppGlobalClassProject",
+			"versionBuild": 0,
+			"versionMajor": 1,
+			"versionMinor": 0,
+			"versionRevision": 0
 		}
 	],
 	"project.settingsVersion": 1,
+	"project.startupObject": "Sub Main",
 	"project.warnings": {
 		"errors": [],
 		"hints": [],

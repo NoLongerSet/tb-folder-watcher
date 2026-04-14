@@ -3,6 +3,12 @@
 Source/Build/
 Source/Packages/
 
+# Access
+*.accdb
+*.accde
+*.laccdb
+vcs-index.json
+
 # Windows
 Thumbs.db
 desktop.ini
