@@ -48,6 +48,22 @@
       "Value": 0,
       "Type": 4
     },
+    "NavPane Closed": {
+      "Value": 0,
+      "Type": 4
+    },
+    "NavPane Sort By": {
+      "Value": 1,
+      "Type": 4
+    },
+    "NavPane View By": {
+      "Value": 0,
+      "Type": 4
+    },
+    "NavPane Width": {
+      "Value": 215,
+      "Type": 4
+    },
     "Never Cache": {
       "Value": 0,
       "Type": 4

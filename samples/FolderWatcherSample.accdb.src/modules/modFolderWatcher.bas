@@ -8,10 +8,15 @@ Option Explicit
 ' Sample Access VBA module that demonstrates launching and using
 ' FolderWatcher.exe to receive callbacks when new files appear.
 '
+' The exe is embedded in the usys_Resources table and extracted
+' automatically on first use.
+'
 ' Usage:
-'   1. Place FolderWatcher.exe in the same folder as this database
-'   2. Call StartWatching with a folder path and callback function name
-'   3. Drop files into the watched folder â€” OnNewFile fires automatically
+'   1. (First time setup) From the Immediate Window, run:
+'        ImportExe "C:\path\to\FolderWatcher_win32.exe"
+'        ImportExe "C:\path\to\FolderWatcher_win64.exe"
+'   2. Call StartWatching with a folder path -- the exe is extracted automatically
+'   3. Drop files into the watched folder -- OnNewFile fires automatically
 '   4. Call StopWatching to terminate the watcher (or just close Access)
 ' -----------------------------------------------------------------------
 
@@ -37,6 +42,10 @@ Option Explicit
 
 Private Const PROCESS_TERMINATE As Long = &H1
 
+Private Const RESOURCE_TABLE As String = "usys_Resources"
+Private Const RESOURCE_NAME_32 As String = "FolderWatcher_win32.exe"
+Private Const RESOURCE_NAME_64 As String = "FolderWatcher_win64.exe"
+
 ' Tracks the watcher's process ID so we can stop it later
 Private m_watcherTaskId As Long
 
@@ -53,20 +62,22 @@ Public Sub StartWatching(ByVal FolderPath As String, _
         Exit Sub
     End If
 
-    Dim exePath As String
+    Dim ExePath As String
     #If Win64 Then
-    exePath = CurrentProject.Path & "\FolderWatcher_win64.exe"
+    ExePath = CurrentProject.Path & "\FolderWatcher_win64.exe"
     #Else
-    exePath = CurrentProject.Path & "\FolderWatcher_win32.exe"
+    ExePath = CurrentProject.Path & "\FolderWatcher_win32.exe"
     #End If
 
-    If Dir(exePath) = "" Then
+    EnsureExeExists ExePath
+
+    If Dir(ExePath) = "" Then
         MsgBox "FolderWatcher.exe not found in:" & vbCrLf & CurrentProject.Path, vbCritical
         Exit Sub
     End If
 
     Dim cmd As String
-    cmd = """" & exePath & """" & _
+    cmd = """" & ExePath & """" & _
           " --dir """ & FolderPath & """" & _
           " --db """ & CurrentProject.FullName & """" & _
           " --function " & CallbackFunction & _
@@ -84,7 +95,7 @@ End Sub
 Public Sub StopWatching()
     If m_watcherTaskId = 0 Then Exit Sub
 
-    ' Shell() returns the process ID — use it to terminate the watcher
+    ' Shell() returns the process ID -- use it to terminate the watcher
     #If VBA7 Then
     Dim hProcess As LongPtr
     #Else
@@ -102,7 +113,133 @@ Public Sub StopWatching()
 End Sub
 
 ' -----------------------------------------------------------------------
-' Sample callback function â€” called by FolderWatcher.exe via COM automation
+' Private helpers
+' -----------------------------------------------------------------------
+
+' Extracts the exe from the usys_Resources table if it doesn't already
+' exist on disk next to the database.
+Private Sub EnsureExeExists(ByVal ExePath As String)
+    If Dir(ExePath) <> "" Then Exit Sub
+
+    Dim ResourceName As String
+    ResourceName = Mid$(ExePath, InStrRev(ExePath, "\") + 1)
+
+    ExtractResource ResourceName, ExePath
+End Sub
+
+' Reads a named resource from usys_Resources and writes it to DestPath.
+' Returns True on success, False on any failure (missing table, missing
+' record, or disk write error).
+Private Function ExtractResource(ByVal ResourceName As String, _
+                                  ByVal DestPath As String) As Boolean
+    If Not ResourceTableExists() Then Exit Function
+
+    Dim db As DAO.Database
+    Set db = CurrentDb
+    With db.OpenRecordset(RESOURCE_TABLE, dbOpenSnapshot)
+        .FindFirst "ResourceName=" & Qt(ResourceName)
+        If .NoMatch Then Exit Function
+
+        Dim b() As Byte
+        b = !ResourceData.Value
+
+        On Error GoTo WriteError
+        Dim FNum As Integer
+        FNum = FreeFile
+        Open DestPath For Binary Lock Write As #FNum
+        Put #FNum, , b
+        Close #FNum
+        On Error GoTo 0
+
+        ExtractResource = True
+        Exit Function
+
+WriteError:
+        Close #FNum
+    End With
+End Function
+
+Private Function ResourceTableExists() As Boolean
+    ResourceTableExists = (DCount("*", "MSysObjects", _
+        "Name=" & Qt(RESOURCE_TABLE) & " AND Type=1") > 0)
+End Function
+
+' Simplified version of https://nolongerset.com/quoth-thy-sql-evermore/
+Private Function Qt(ByVal s As String) As String
+    Qt = Chr$(34) & s & Chr$(34)
+End Function
+
+' -----------------------------------------------------------------------
+' Developer utilities -- run from the Immediate Window to populate the
+' usys_Resources table with the FolderWatcher executables.
+' -----------------------------------------------------------------------
+
+' Creates the usys_Resources table if it does not already exist.
+Public Sub CreateResourceTable()
+    If ResourceTableExists() Then
+        Debug.Print "Table already exists: " & RESOURCE_TABLE
+        Exit Sub
+    End If
+
+    CurrentDb.Execute _
+        "CREATE TABLE " & RESOURCE_TABLE & " " & _
+        "(ResourceName TEXT(255) NOT NULL PRIMARY KEY, " & _
+        " ResourceData LONGBINARY NOT NULL)", dbFailOnError
+
+    Debug.Print "Created table: " & RESOURCE_TABLE
+End Sub
+
+' Imports an exe (or any file) into the usys_Resources table.
+' If a record with the same name already exists, it is overwritten.
+'
+' Usage:
+'   ImportExe "C:\Build\FolderWatcher_win32.exe"
+'   ImportExe "C:\Build\FolderWatcher_win64.exe"
+Public Sub ImportExe(ByVal ExePath As String)
+    If Dir(ExePath) = "" Then
+        MsgBox "File not found: " & ExePath, vbCritical
+        Exit Sub
+    End If
+
+    If Not ResourceTableExists() Then CreateResourceTable
+
+    Dim ResourceName As String
+    ResourceName = Mid$(ExePath, InStrRev(ExePath, "\") + 1)
+
+    Dim FNum As Integer
+    FNum = FreeFile
+    Open ExePath For Binary Lock Read As #FNum
+    Dim b() As Byte
+    ReDim b(1 To LOF(FNum))
+    Get #FNum, , b
+    Close #FNum
+
+    Dim db As DAO.Database
+    Set db = CurrentDb
+    With db.OpenRecordset(RESOURCE_TABLE, dbOpenDynaset)
+        .FindFirst "ResourceName=" & Qt(ResourceName)
+        If .NoMatch Then
+            .AddNew
+            !ResourceName.Value = ResourceName
+        Else
+            .Edit
+        End If
+        !ResourceData.Value = b
+        .Update
+        .Close
+    End With
+
+    Debug.Print "Imported: " & ResourceName & " (" & UBound(b) & " bytes)"
+End Sub
+
+' Re-imports both FolderWatcher exes from the Build folder into usys_Resources.
+Public Sub ReimportFolderWatcherExes()
+    ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win32.exe"
+    ImportExe CurrentProject.Path & "\..\Build\FolderWatcher_win64.exe"
+End Sub
+
+' -----------------------------------------------------------------------
+' Sample callback function -- called by FolderWatcher.exe via COM automation
 ' -----------------------------------------------------------------------
 
 ' This function is called automatically when a new file appears in the

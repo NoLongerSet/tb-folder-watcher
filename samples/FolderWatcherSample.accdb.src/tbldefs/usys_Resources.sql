@@ -1,0 +1,4 @@
+﻿CREATE TABLE [usys_Resources] (
+  [ResourceName] VARCHAR (255) CONSTRAINT [Index_1C5C4F29_79DF_418F] PRIMARY KEY UNIQUE NOT NULL,
+  [ResourceData] LONGBINARY
+)
