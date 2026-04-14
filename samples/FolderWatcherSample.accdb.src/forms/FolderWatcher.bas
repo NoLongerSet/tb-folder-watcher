@@ -168,7 +168,7 @@ Begin Form
                             OverlapFlags =85
                             Left =1560
                             Top =3660
-                            Width =2370
+                            Width =3000
                             Height =435
                             FontSize =16
                             FontWeight =700
@@ -177,7 +177,7 @@ Begin Form
                             Caption ="Folder to Watch:"
                             LayoutCachedLeft =1560
                             LayoutCachedTop =3660
-                            LayoutCachedWidth =3930
+                            LayoutCachedWidth =4560
                             LayoutCachedHeight =4095
                             ForeThemeColorIndex =-1
                             ForeTint =100.0
