@@ -68,6 +68,10 @@ A 5-minute fallback timeout provides a belt-and-suspenders safety net in case th
 
 The sample VBA module uses `#If Win64` conditional compilation to select the correct executable (`FolderWatcher_win32.exe` or `FolderWatcher_win64.exe`) to match your Access installation.
 
+### Custom Application Icon
+
+The sample database embeds a custom `.ico` file in the same `usys_Resources` table used for the executables. On startup, `SetAppIcon` extracts the icon next to the database and sets it as the Access application icon via the `AppIcon` database property. The icon appears in the Access title bar and taskbar — a small touch that makes the database feel like a polished, purpose-built application rather than a generic `.accdb` file.
+
 ## Usage
 
 ```
@@ -162,6 +166,18 @@ After rebuilding the twinBASIC project, re-import with:
 ```vba
 ReimportFolderWatcherExes
 ```
+
+### Application icon
+
+You can also embed a custom `.ico` in the same resource table:
+
+```vba
+ImportExe "C:\path\to\folderwatcher.ico"
+```
+
+The sample database calls `SetAppIcon` from the startup form's `Form_Open` event. This extracts the `.ico` next to the database (if not already there) and sets the `AppIcon` database property to the full path. Access picks up the icon in the title bar and taskbar after `Application.RefreshTitleBar`.
+
+The `AppIcon` property requires a full absolute path — relative paths and the `rel:` prefix do not work. Because the path changes when the database moves to a different machine, `SetAppIcon` re-checks and updates the property on every open.
 
 ### Adapting the pattern
 
