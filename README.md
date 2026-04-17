@@ -2,7 +2,7 @@
 
 A [twinBASIC](https://twinbasic.com/) utility that monitors a directory for new files and calls a VBA function in a running Microsoft Access application when one appears.
 
-Built for the [Access DevCon Vienna 2026](https://www.accessdevcon.com/) talk on leveraging twinBASIC from Access applications.
+Built for the [Access DevCon Vienna 2026](https://nolongerset.com/devcon-2026/) talk on leveraging twinBASIC from Access applications.
 
 ## Why?
 
